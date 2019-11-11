@@ -1,9 +1,15 @@
 /*
-Praktikum 1 Vorbereitung
-Simon
-18.10.19
-
-Beispielprogramm: x und y Position auf der Konsole ausgeben
+* Car-Dash system
+* 
+* #git: https://github.com/BalooSLU/car-dash-MC
+* #author: Simon Kesting
+* #author: Martin Pyka
+* #date: 18.10.19
+* #file: main.c
+*
+* This project is a laboratory test from the university,
+* where we recognize the speed of a motor. 
+* The speed is then displayed on a graphic LCD display.
  */
 
 
@@ -276,4 +282,6 @@ void window_set (unsigned int start_x, unsigned int end_x, unsigned int start_y,
 	write_data(end_y);			// SET end column adress
 
 }
+
+
 
