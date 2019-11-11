@@ -15,27 +15,50 @@
 
 #include<stdio.h>
 #include"tm4c1294ncpdt.h"
+#include"startup_disp.h"
 
 #define DISP_WIDTH 480
 #define DISP_HIGHT 272
 #define DISP_FULL (DISP_HIGHT * DISP_WIDTH)
-
+//           ---System---
+void pin_init(void);
 void wait(int loops);
-// Touch
+void pin_init(void);
+//           ---Touch---
 void touch_write(unsigned char value);
 unsigned int touch_read();
-// Display
+//           ---Display---
+void startUp_display (void);
 void write_command (unsigned char command);
 void write_data (unsigned char data);
 void initialise_ssd1963(void);
 void window_set (unsigned int start_x, unsigned int end_x, unsigned int start_y, unsigned int end_y);
 void draw_line (unsigned int start_x, unsigned int start_y, unsigned int length, unsigned int width, char red, char green, char blue);
 void clear_display (void);
+//           ---RPM---
+void rpm_init(void);
+void rpm_sone_handler(void);
+void rpm_stwo_handler(void); 
+void rpm_time_handler(void);
+void rpm_speed(void);
 
 void main(void)
 {
-	int x, xpos, ypos;
+	pin_init();
+	initialise_ssd1963();
+	clear_display();
+	startUp_display();
+	rpm_init();
+	while (1)
+	{
 
+	}
+}
+void pin_init(void)
+{
+	unsigned long freq;
+	// init system clock
+	freq=SysCtlClockFreqSet((SYSCTL_OSC_MAIN|SYSCTL_USE_OSC|SYSCTL_XTAL_25MHZ),1000000); // 25 Mhz clock Int 
 	SYSCTL_RCGCGPIO_R = 0x2C08;								// Enable clock Port D, L, M
 	while ((SYSCTL_PRGPIO_R & 0x2C08) ==0);					// GPIO Clock ready?
 
@@ -53,76 +76,8 @@ void main(void)
 	GPIO_PORTD_AHB_DATA_R &= 0xF7;							// Clk = 0
 	GPIO_PORTL_DATA_R &= 0xF7;							// Clk = 0
 	GPIO_PORTM_DATA_R &= 0xF7;							// Clk = 0
-	GPIO_PORTP_DATA_R &= 0xF7;							// Clk = 0
-
-
-	// B6 Example
-	initialise_ssd1963();
-
-	clear_display();
-
-	draw_line(10, 10, 100, 100, 0x00, 0xFF, 0x00);
-
-	window_set(240, 339, 136, 145);							// set position
-	write_command(0x2C);									// write pixel command
-
-	for (x = 0; x <= 1000; x++)								// set 8 pixels
-	{
-		write_data(0xff);	// red
-		write_data(0x00);	// green
-		write_data(0x00);	// blue
-	}
-
-
-	while (1)
-	{
-		touch_write (0xD0);									// Touch Command XPos read
-		for (x=0; x<10; x++);								// Busy wait
-		xpos = touch_read();								// xpos value read (0...4095)
-		printf ("xpos = %5d     ",xpos);
-
-		touch_write (0x90);									// Touch Command YPos read
-		for (x=0; x<10; x++);								// Busy wait
-		ypos = touch_read();								// ypos value read (0...4095)
-		printf ("ypos = %5d\n    ",ypos);
-	}
+	GPIO_PORTP_DATA_R &= 0xF7;	
 }
-
-void clear_display (void)
-{
-	int x;
-
-	window_set(0, DISP_WIDTH, 0, DISP_HIGHT);							// set position
-	write_command(0x2C);												// write pixel command
-
-	for (x = 0; x < DISP_FULL ; x++)						// set all pixels
-	{
-		write_data(0xff);	// red
-		write_data(0xff);	// green
-		write_data(0xff);	// blue
-	}
-}
-
-void draw_line (unsigned int start_x, unsigned int start_y, unsigned int length, unsigned int width, char red, char green, char blue)
-{
-	int x;
-	unsigned int number_pixel = length * width;
-
-	unsigned int end_x = start_x + length - 1;
-	unsigned int end_y = start_y + width - 1;
-
-	window_set(start_x, end_x, start_y, end_y);
-	write_command(0x2C);
-
-	for (x = 0; x < number_pixel ; x++)						// set all pixels
-		{
-			write_data(red);	// red
-			write_data(green);	// green
-			write_data(blue);	// blue
-		}
-
-}
-
 
 void wait(int loops)
 {
@@ -153,8 +108,6 @@ void touch_write(unsigned char value)
 		i--;
 	}
 }
-
-
 unsigned int touch_read()
 {
 	unsigned char i = 12;									// 12 Bit ADC
@@ -175,31 +128,36 @@ unsigned int touch_read()
 	return value;
 }
 
-
 // Display
 
-void write_command (unsigned char command)
+void clear_display (void)
 {
-	GPIO_PORTL_DATA_R = 0x1F;			// Initial state
-	GPIO_PORTL_DATA_R &= ~0x08;			// Chip select
-	GPIO_PORTL_DATA_R &= ~0x04;			// Command mode select
-	GPIO_PORTL_DATA_R &= ~0x02;			// Write state
-	GPIO_PORTM_DATA_R = command;		// Write command byte
-	GPIO_PORTL_DATA_R |= 0x02;			// No write state
-	GPIO_PORTL_DATA_R |= 0x08;			// No chip select
-}
+	int x;
 
-void write_data (unsigned char data)
+	window_set(0, DISP_WIDTH, 0, DISP_HIGHT);							// set position
+	write_command(0x2C);												// write pixel command
+
+	for (x = 0; x < DISP_FULL ; x++)						// set all pixels
+	{
+		write_data(0xff);	// red
+		write_data(0xff);	// green
+		write_data(0xff);	// blue
+	}
+}
+void startUp_display (void)
 {
-	GPIO_PORTL_DATA_R = 0x1F;			// Initial state
-	GPIO_PORTL_DATA_R &= ~0x08;			// Chip select
-	GPIO_PORTL_DATA_R |= 0x04;			// Data mode select
-	GPIO_PORTL_DATA_R &= ~0x02;			// Write state
-	GPIO_PORTM_DATA_R = data;			// Write data byte
-	GPIO_PORTL_DATA_R |= 0x02;			// No write state
-	GPIO_PORTL_DATA_R |= 0x08;			// No chip select
+	window_set(0, DISP_WIDTH, 0, DISP_HIGHT);							// set position
+	write_command(0x2C);												// write pixel command
+	
+	for (int y = 0; y < DISP_HIGHT; y++) {
+		for (int x = 0; x < DISP_WIDTH; x++) {
+			uint32_t offset = (x + (y * DISP_WIDTH)) * 3;
+			write_data(startup_disp_map[offset +0]);	// red
+			write_data(startup_disp_map[offset +1]);	// green
+			write_data(startup_disp_map[offset +2]);	// blue
+		}
+	}
 }
-
 void initialise_ssd1963(void)
 {
 
@@ -266,7 +224,45 @@ void initialise_ssd1963(void)
 
 	write_command(0x29);	// Set display on
 }
+void draw_line (unsigned int start_x, unsigned int start_y, unsigned int length, unsigned int width, char red, char green, char blue)
+{
+	int x;
+	unsigned int number_pixel = length * width;
 
+	unsigned int end_x = start_x + length - 1;
+	unsigned int end_y = start_y + width - 1;
+
+	window_set(start_x, end_x, start_y, end_y);
+	write_command(0x2C);
+
+	for (x = 0; x < number_pixel ; x++)						// set all pixels
+		{
+			write_data(red);	// red
+			write_data(green);	// green
+			write_data(blue);	// blue
+		}
+
+}
+void write_command (unsigned char command)
+{
+	GPIO_PORTL_DATA_R = 0x1F;			// Initial state
+	GPIO_PORTL_DATA_R &= ~0x08;			// Chip select
+	GPIO_PORTL_DATA_R &= ~0x04;			// Command mode select
+	GPIO_PORTL_DATA_R &= ~0x02;			// Write state
+	GPIO_PORTM_DATA_R = command;		// Write command byte
+	GPIO_PORTL_DATA_R |= 0x02;			// No write state
+	GPIO_PORTL_DATA_R |= 0x08;			// No chip select
+}
+void write_data (unsigned char data)
+{
+	GPIO_PORTL_DATA_R = 0x1F;			// Initial state
+	GPIO_PORTL_DATA_R &= ~0x08;			// Chip select
+	GPIO_PORTL_DATA_R |= 0x04;			// Data mode select
+	GPIO_PORTL_DATA_R &= ~0x02;			// Write state
+	GPIO_PORTM_DATA_R = data;			// Write data byte
+	GPIO_PORTL_DATA_R |= 0x02;			// No write state
+	GPIO_PORTL_DATA_R |= 0x08;			// No chip select
+}
 void window_set (unsigned int start_x, unsigned int end_x, unsigned int start_y, unsigned int end_y)
 {
 	write_command(0x2A);		// SET page address
@@ -278,7 +274,7 @@ void window_set (unsigned int start_x, unsigned int end_x, unsigned int start_y,
 	write_command(0x2B);		// SET page address
 	write_data((start_y) >> 8);	// SET start column adress (HB)
 	write_data(start_y);		// SET start column adress (LB)
-	write_data((end_y) >> 8);		// SET end column adress
+	write_data((end_y) >> 8);	// SET end column adress
 	write_data(end_y);			// SET end column adress
 
 }
