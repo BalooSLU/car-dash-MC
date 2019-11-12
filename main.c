@@ -51,7 +51,9 @@ void main(void)
 	startUp_display();
 	//rpm_init();
 	wait(100);
-	//draw_line (140,173, 320, 81, 0x84, 0x97, 0xb0);
+	//draw_line (140, 173, 320, 81, 0x84, 0x97, 0xb0); //Box to cover the km/h space
+	//draw_line (32, 36, 414, 95, 0x84, 0x97, 0xb0); // Box to cover the analog space
+	//drwa_line (17, 174, 100, 80, 0x84, 0x97, 0xb0); // Box to cover the direction space
 	while (1)
 	{
 
