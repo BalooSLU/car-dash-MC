@@ -14,17 +14,8 @@
 //test
 
 #include<stdio.h>
-#include "startup_disp.h"
-#include "inc/tm4c1294ncpdt.h"
-#include "inc/hw_ints.h"
-#include "inc/hw_memmap.h"
-#include "inc/hw_types.h"
-#include "driverlib/pin_map.h"
-#include "driverlib/debug.h"
-#include "driverlib/gpio.h"
-#include "driverlib/interrupt.h"
-#include "driverlib/systick.h"
-#include "driverlib/sysctl.h"
+#include"tm4c1294ncpdt.h"
+#include"startup_disp.h"
 
 #define DISP_WIDTH 480
 #define DISP_HIGHT 272
@@ -44,6 +35,7 @@ void initialise_ssd1963(void);
 void window_set (unsigned int start_x, unsigned int end_x, unsigned int start_y, unsigned int end_y);
 void draw_line (unsigned int start_x, unsigned int start_y, unsigned int length, unsigned int width, char red, char green, char blue);
 void clear_display (void);
+void clear_pixel(void);
 //           ---RPM---
 void rpm_init(void);
 void rpm_sone_handler(void);
@@ -57,7 +49,9 @@ void main(void)
 	initialise_ssd1963();
 	clear_display();
 	startUp_display();
-	rpm_init();
+	//rpm_init();
+	wait(100);
+	//draw_line (140,173, 320, 81, 0x84, 0x97, 0xb0);
 	while (1)
 	{
 
@@ -65,9 +59,6 @@ void main(void)
 }
 void pin_init(void)
 {
-	unsigned long freq;
-	// init system clock
-	freq=SysCtlClockFreqSet((SYSCTL_OSC_MAIN|SYSCTL_USE_OSC|SYSCTL_XTAL_25MHZ),1000000); // 25 Mhz clock Int 
 	SYSCTL_RCGCGPIO_R = 0x2C08;								// Enable clock Port D, L, M
 	while ((SYSCTL_PRGPIO_R & 0x2C08) ==0);					// GPIO Clock ready?
 
@@ -80,7 +71,7 @@ void pin_init(void)
 	GPIO_PORTD_AHB_DIR_R = 0x0D;						// PortD Input/Output
 	GPIO_PORTL_DIR_R = 0x1F;							// PortL Input/Output
 	GPIO_PORTM_DIR_R = 0xFF;							// PortM Input/Output
-	GPIO_PORTM_DIR_R &= ~0x03;							// PortP Input/Output
+	GPIO_PORTP_DIR_R &= ~0x03;							// PortP Input/Output
 
 	GPIO_PORTD_AHB_DATA_R &= 0xF7;							// Clk = 0
 	GPIO_PORTL_DATA_R &= 0xF7;							// Clk = 0
@@ -148,25 +139,36 @@ void clear_display (void)
 
 	for (x = 0; x < DISP_FULL ; x++)						// set all pixels
 	{
-		write_data(0xff);	// red
-		write_data(0xff);	// green
-		write_data(0xff);	// blue
+		write_data(0x84);	// red
+		write_data(0x97);	// green
+		write_data(0xb0);	// blue
 	}
 }
 void startUp_display (void)
 {
+	int x,y = 0;
 	window_set(0, DISP_WIDTH, 0, DISP_HIGHT);							// set position
 	write_command(0x2C);												// write pixel command
+
+	for (y = 0; y < DISP_HIGHT; y++) {
+
+		for (x = 0; x < DISP_WIDTH+1; x++) {
 	
-	for (int y = 0; y < DISP_HIGHT; y++) {
-		for (int x = 0; x < DISP_WIDTH; x++) {
-			uint32_t offset = (x + (y * DISP_WIDTH)) * 3;
-			write_data(startup_disp_map[offset +0]);	// red
+			uint32_t offset = (x + (y * DISP_WIDTH)) * 4;
+			write_data(startup_disp_map[offset +2]);	// red
 			write_data(startup_disp_map[offset +1]);	// green
-			write_data(startup_disp_map[offset +2]);	// blue
+			write_data(startup_disp_map[offset +0]);	// blue
 		}
 	}
+
 }
+void clear_pixel(void)
+{
+	write_data(0x84);	// red
+	write_data(0x97);	// green
+	write_data(0xb0);	// blue
+}
+
 void initialise_ssd1963(void)
 {
 
@@ -233,6 +235,7 @@ void initialise_ssd1963(void)
 
 	write_command(0x29);	// Set display on
 }
+
 void draw_line (unsigned int start_x, unsigned int start_y, unsigned int length, unsigned int width, char red, char green, char blue)
 {
 	int x;
