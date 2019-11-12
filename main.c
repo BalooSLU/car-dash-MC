@@ -13,9 +13,10 @@
  */
 //test
 
-#include<stdio.h>
-#include"tm4c1294ncpdt.h"
-#include"startup_disp.h"
+#include <stdio.h>
+#include "tm4c1294ncpdt.h"
+#include "startup_clear.h"
+#include "direction_map.h"
 
 #define DISP_WIDTH 480
 #define DISP_HIGHT 272
@@ -256,6 +257,44 @@ void draw_line (unsigned int start_x, unsigned int start_y, unsigned int length,
 			write_data(blue);	// blue
 		}
 
+}
+
+void draw_direction (char direction)
+{
+	unsigned int start_x = 17; 
+	unsigned int start_y = 174;
+	unsigned int width = 100;
+	unsigned int hight = 80;
+	unsigned int number_pixel = width * hight;
+	int x;
+	
+	unsigned int end_x = start_x + width - 1;
+	unsigned int end_y = start_y + hight - 1;
+
+	window_set(start_x, end_x, start_y, end_y);
+	write_command(0x2C);
+	switch(direction)
+	{	
+		case "V":
+		uint8_t disp_map[]= v_map[];
+		break;
+		case "D":
+		uint8_t disp_map[]= d_map[];
+		break;
+		default:
+		return;
+		break;
+	}
+	for (y = 0; y < hight; y++) {
+
+		for (x = 0; x < width+1; x++) {
+	
+			uint32_t offset = (x + (y * width)) * 4;
+			write_data(disp_map[offset +2]);	// red
+			write_data(disp_map[offset +1]);	// green
+			write_data(disp_map[offset +0]);	// blue
+		}
+	}
 }
 void write_command (unsigned char command)
 {
