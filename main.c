@@ -17,6 +17,8 @@
 #include "tm4c1294ncpdt.h"
 #include "startup_clear.h"
 #include "direction_map.h"
+#include "number_map.h"
+#include "term_map.h"
 
 #define DISP_WIDTH 480
 #define DISP_HIGHT 272
@@ -30,6 +32,10 @@ void touch_write(unsigned char value);
 unsigned int touch_read();
 //           ---Display---
 void startUp_display (void);
+void draw_komma (char mode);
+void draw_term (char mode);
+void draw_direction (char direction);
+void draw_number (uint8_t number, char mode);
 void write_command (unsigned char command);
 void write_data (unsigned char data);
 void initialise_ssd1963(void);
@@ -52,12 +58,39 @@ void main(void)
 	startUp_display();
 	//rpm_init();
 	wait(100);
-	//draw_line (140, 173, 320, 81, 0x84, 0x97, 0xb0); //Box to cover the km/h space
+	//
 	//draw_line (32, 36, 414, 95, 0x84, 0x97, 0xb0); // Box to cover the analog space
 	//drwa_line (17, 174, 100, 80, 0x84, 0x97, 0xb0); // Box to cover the direction space
+	draw_number (1, MODE_NUM_1);
+	draw_number (2, MODE_NUM_2);
+	draw_number (3, MODE_NUM_3);
+	draw_komma();
+	draw_number (4, MODE_NUM_4);
+	draw_number (5, MODE_NUM_5);
+	draw_term(MODE_TERM_KMH);
+	draw_direction('V');
+	draw_line (140, 173, 320, 81, 0x84, 0x97, 0xb0); //Box to cover the km/h space
+	wait(100);
 	while (1)
-	{
-
+	{	
+		draw_number (6, MODE_NUM_1);
+		draw_number (8, MODE_NUM_2);
+		draw_number (7, MODE_NUM_3);
+		
+		draw_number (9, MODE_NUM_4);
+		draw_number (0, MODE_NUM_5);
+		draw_term(MODE_TERM_KM);
+		draw_direction('R');
+		wait(100);
+		draw_number (2, MODE_NUM_1);
+		draw_number (5, MODE_NUM_2);
+		draw_number (7, MODE_NUM_3);
+		
+		draw_number (4, MODE_NUM_4);
+		draw_number (6, MODE_NUM_5);
+		draw_term(MODE_TERM_KMH);
+		draw_direction('V');
+		wait(100);
 	}
 }
 void pin_init(void)
@@ -163,7 +196,145 @@ void startUp_display (void)
 			write_data(startup_disp_map[offset +0]);	// blue
 		}
 	}
+}
+void draw_komma (void)
+{
+	unsigned int start_x = KOMMA_START_X; 
+	unsigned int start_y = KOMMA_START_Y;
+	unsigned int width = KOMMA_WIDTH;
+	unsigned int hight = KOMMA_HIGHT;
+	unsigned int number_pixel = width * hight;
+	int x;
+	
+	unsigned int end_x = start_x + width - 1;
+	unsigned int end_y = start_y + hight - 1;
 
+	window_set(start_x, end_x, start_y, end_y);
+	write_command(0x2C);
+
+	for (y = 0; y < hight; y++) {
+		for (x = 0; x < width+1; x++) {
+			uint32_t offset = (x + (y * width)) * 4;
+			write_data(komma_map[offset +2]);	// red
+			write_data(komma_map[offset +1]);	// green
+			write_data(komma_map[offset +0]);	// blue
+		}
+	}
+}
+void draw_term (char mode)
+{
+	unsigned int start_x = TERM_START_X; 
+	unsigned int start_y = TERM_START_Y;
+	unsigned int width = TERM_WIDTH;
+	unsigned int hight = TERM_HIGHT;
+	unsigned int number_pixel = width * hight;
+	int x;
+	
+	unsigned int end_x = start_x + width - 1;
+	unsigned int end_y = start_y + hight - 1;
+
+	window_set(start_x, end_x, start_y, end_y);
+	write_command(0x2C);
+	switch(mode)
+	{	
+		case MODE_TERM_KM:
+		uint8_t disp_map[]= km_map[];			// changes the map
+		break;
+		case MODE_TERM_KMH:
+		uint8_t disp_map[]= km_h_map[];			// changes the map
+		break;
+		default:
+		return;
+		break;
+	}
+	for (y = 0; y < hight; y++) {
+		for (x = 0; x < width+1; x++) {
+			uint32_t offset = (x + (y * width)) * 4;
+			write_data(disp_map[offset +2]);	// red
+			write_data(disp_map[offset +1]);	// green
+			write_data(disp_map[offset +0]);	// blue
+		}
+	}
+}
+void draw_direction (char direction)
+{
+	unsigned int start_x = DIR_START_X; 
+	unsigned int start_y = DIR_START_Y;
+	unsigned int width = DIR_WIDTH;
+	unsigned int hight = DIR_HIGTH;
+	unsigned int number_pixel = width * hight;
+	int x;
+	
+	unsigned int end_x = start_x + width - 1;
+	unsigned int end_y = start_y + hight - 1;
+
+	window_set(start_x, end_x, start_y, end_y);
+	write_command(0x2C);
+	switch(direction)
+	{	
+		case "V":
+		uint8_t disp_map[]= V_map[];			// changes the map
+		break;
+		case "R":
+		uint8_t disp_map[]= R_map[];			// changes the map
+		break;
+		default:
+		return;
+		break;
+	}
+	for (y = 0; y < hight; y++) {
+		for (x = 0; x < width+1; x++) {
+			uint32_t offset = (x + (y * width)) * 4;
+			write_data(disp_map[offset +2]);	// red
+			write_data(disp_map[offset +1]);	// green
+			write_data(disp_map[offset +0]);	// blue
+		}
+	}
+}
+void draw_number (uint8_t number, char mode)
+{	
+	if(number > 9 || number < 0 ) return;
+	switch (mode)
+	{
+	case MODE_NUM_1:
+		unsigned int start_x = NUM_START_X_1;
+		break;
+	case MODE_NUM_2:
+		unsigned int start_x = NUM_START_X_2;
+		break;
+	case MODE_NUM_3:
+		unsigned int start_x = NUM_START_X_3;
+		break;
+	case MODE_NUM_4:
+		unsigned int start_x = NUM_START_X_4;
+		break;
+	case MODE_NUM_5:
+		unsigned int start_x = NUM_START_X_5;
+		break;
+	default:
+		return;
+		break;
+	}
+	unsigned int start_y = NUM_START_Y;
+	unsigned int width = NUM_WIDTH;
+	unsigned int hight = NUM_HIGTH;
+	unsigned int number_pixel = width * hight;
+	int x;
+	
+	unsigned int end_x = start_x + width - 1;
+	unsigned int end_y = start_y + hight - 1;
+
+	window_set(start_x, end_x, start_y, end_y);
+	write_command(0x2C);
+	
+	for (y = 0; y < hight; y++) {
+		for (x = 0; x < width+1; x++) {
+			uint32_t offset = (x + (y * width)) * 4;
+			write_data(number_map[number][offset +2]);	// red
+			write_data(number_map[number][offset +1]);	// green
+			write_data(number_map[number][offset +0]);	// blue
+		}
+	}
 }
 void clear_pixel(void)
 {
@@ -259,41 +430,6 @@ void draw_line (unsigned int start_x, unsigned int start_y, unsigned int length,
 
 }
 
-void draw_direction (char direction)
-{
-	unsigned int start_x = 17; 
-	unsigned int start_y = 174;
-	unsigned int width = 100;
-	unsigned int hight = 80;
-	unsigned int number_pixel = width * hight;
-	int x;
-	
-	unsigned int end_x = start_x + width - 1;
-	unsigned int end_y = start_y + hight - 1;
-
-	window_set(start_x, end_x, start_y, end_y);
-	write_command(0x2C);
-	switch(direction)
-	{	
-		case "V":
-		uint8_t disp_map[]= V_map[];			// changes the map
-		break;
-		case "R":
-		uint8_t disp_map[]= R_map[];			// changes the map
-		break;
-		default:
-		return;
-		break;
-	}
-	for (y = 0; y < hight; y++) {
-		for (x = 0; x < width+1; x++) {
-			uint32_t offset = (x + (y * width)) * 4;
-			write_data(disp_map[offset +2]);	// red
-			write_data(disp_map[offset +1]);	// green
-			write_data(disp_map[offset +0]);	// blue
-		}
-	}
-}
 void write_command (unsigned char command)
 {
 	GPIO_PORTL_DATA_R = 0x1F;			// Initial state

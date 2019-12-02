@@ -4,9 +4,13 @@
 * Color Format: True color
 * Output Format: C array
 *
-* tested. 100x80 Pixel in 8Bit BGR-Format + 0xff 
-* Array size: 100x80x4 = 32.000‬‬ Values.
+* tested. 73x85 Pixel in 8Bit BGR-Format + 0xff 
+* Array size: 73x85x4 = 24.820‬‬ Values.
 */
+#define DIR_START_X 30
+#define DIR_START_Y 172
+#define DIR_WIDTH 73
+#define DIR_HIGTH 85
 
 const uint8_t V_map[] = {
   /*Pixel format: Fix 0xFF: 8 bit, Red: 8 bit, Green: 8 bit, Blue: 8 bit*/

@@ -4,10 +4,23 @@
 * Color Format: True color
 * Output Format: C array
 *
-* not tested. 100x80 Pixel in 8Bit BGR-Format + 0xff 
-* Array size: 100x80x4 = 32.000‬‬ Values.
+* not tested. 56x85 Pixel in 8Bit BGR-Format + 0xff 
+* Array size: 56x85x4 = 19.040‬‬ Values.
 */
+#define NUM_START_X_1 134     // 100
+#define NUM_START_X_2 190     //  10
+#define NUM_START_X_3 246     //   1
+#define NUM_START_X_4 315     //   0,1
+#define NUM_START_X_5 371     //   0,01
 
+#define NUM_START_Y 172       // Every number starts at the same hight
+#define NUM_WIDTH 56          // Every number has the same pixel width
+#define NUM_HIGTH 85          // Every number has the same pixel hight
+#define MODE_NUM_1 0x12
+#define MODE_NUM_2 0x13
+#define MODE_NUM_3 0x14
+#define MODE_NUM_4 0x15
+#define MODE_NUM_5 0x16
 const uint8_t number_map[10][]{
 //NULL
   {
