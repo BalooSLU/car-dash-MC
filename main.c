@@ -142,9 +142,9 @@ void clear_display (void)
 
 	for (x = 0; x < DISP_FULL ; x++)						// set all pixels
 	{
-		write_data(0x84);	// red
-		write_data(0x97);	// green
-		write_data(0xb0);	// blue
+		write_data(0x84);	// red  	132
+		write_data(0x97);	// green	151
+		write_data(0xb0);	// blue		176
 	}
 }
 void startUp_display (void)
@@ -276,19 +276,17 @@ void draw_direction (char direction)
 	switch(direction)
 	{	
 		case "V":
-		uint8_t disp_map[]= v_map[];
+		uint8_t disp_map[]= V_map[];			// changes the map
 		break;
-		case "D":
-		uint8_t disp_map[]= d_map[];
+		case "R":
+		uint8_t disp_map[]= R_map[];			// changes the map
 		break;
 		default:
 		return;
 		break;
 	}
 	for (y = 0; y < hight; y++) {
-
 		for (x = 0; x < width+1; x++) {
-	
 			uint32_t offset = (x + (y * width)) * 4;
 			write_data(disp_map[offset +2]);	// red
 			write_data(disp_map[offset +1]);	// green
