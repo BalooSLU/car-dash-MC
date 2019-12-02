@@ -26,7 +26,6 @@
 //           ---System---
 void pin_init(void);
 void wait(int loops);
-void pin_init(void);
 //           ---Touch---
 void touch_write(unsigned char value);
 unsigned int touch_read();
