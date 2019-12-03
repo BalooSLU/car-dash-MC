@@ -5,7 +5,7 @@
 * Output Format: C array
 *
 * not tested. 56x85 Pixel in 8Bit BGR-Format + 0xff 
-* Array size: 56x85x4 = 19.040‬‬ Values.
+* Array size: 56x85x4 = 19.040 Values.
 */
 #define NUM_START_X_1 134     // 100
 #define NUM_START_X_2 190     //  10
@@ -21,7 +21,7 @@
 #define MODE_NUM_3 0x14
 #define MODE_NUM_4 0x15
 #define MODE_NUM_5 0x16
-const uint8_t number_map[10][]{
+const uint8_t number_map[10][19040] = {
 //NULL
   {
   /*Pixel format: Fix 0xFF: 8 bit, Red: 8 bit, Green: 8 bit, Blue: 8 bit*/
