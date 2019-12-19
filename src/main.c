@@ -54,7 +54,7 @@ void write_command(uint8_t command);
 void write_data(uint8_t data);
 void initialise_ssd1963(void);
 void window_set(unsigned int start_x, unsigned int end_x, unsigned int start_y, unsigned int end_y);
-void draw_line(unsigned int start_x, unsigned int start_y, unsigned int length, unsigned int width, uint8_t red, uint8_t green, uint8_t blue);
+void draw_line(unsigned int start_x, unsigned int start_y, unsigned int length, unsigned int width);
 void clear_display(void);
 void clear_pixel(void);
 //           ---RPM---
@@ -82,6 +82,7 @@ int main(void)
 										   120000000); //Set clock
 	SysTickPeriodSet(sysclock_read_out / 100);		   // Set period for systick to 10ms
 	SysTickIntRegister(rpm_time_handler);			   // Set handler for systick
+	IntPrioritySet(FAULT_SYSTICK, 4);
 
 	pin_init();			  // Initialize pins for display
 	initialise_ssd1963(); // Initialize display
@@ -97,7 +98,9 @@ int main(void)
 	IntMasterEnable();
 	while (1)
 	{
-		drawIt(MODE_TERM_KMH);
+		GPIO_PORTC_AHB_DATA_R = GPIO_PIN_4;   // GPIO4 setzen
+		drawIt(MODE_TERM_KMH);				  // BESTIMMEN WIE LANGE DIE FUNKTION BRAUCHT
+		GPIO_PORTC_AHB_DATA_R &= ~GPIO_PIN_4; // GPIO4 loeschen
 		wait(100000);
 	}
 }
@@ -128,23 +131,37 @@ void rpm_init(void)
 	while (!SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOP))
 	{
 	}
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);
+	while (!SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOC))
+	{
+	}
+	GPIOPinTypeGPIOOutput(GPIO_PORTC_BASE, GPIO_PIN_5 | GPIO_PIN_4);
 
 	GPIOPinTypeGPIOInput(GPIO_PORTP_BASE, GPIO_PIN_0 | GPIO_PIN_1);
-	GPIOIntEnable(GPIO_PORTP_BASE, GPIO_INT_PIN_0 | GPIO_INT_PIN_1);
 	GPIOIntTypeSet(GPIO_PORTP_BASE, GPIO_PIN_0 | GPIO_PIN_1, GPIO_RISING_EDGE);
-
-	IntPrioritySet(INT_GPIOP0, 4);
-	IntPrioritySet(INT_GPIOP1, 4);
+	// Das
+	//GPIOIntRegister(INT_GPIOP0, rpm_sone_handler);
+	//GPIOIntRegister(INT_GPIOP1, rpm_stwo_handler);
+	//oder das eins  muss gehen
 	IntRegister(INT_GPIOP0, rpm_sone_handler);
 	IntRegister(INT_GPIOP1, rpm_stwo_handler);
+	//ende
+
+	GPIOIntClear(GPIO_PORTP_BASE, GPIO_PIN_0);
+	GPIOIntClear(GPIO_PORTP_BASE, GPIO_PIN_1);
+	IntPrioritySet(INT_GPIOP0, 3);
+	IntPrioritySet(INT_GPIOP1, 3);
+	GPIOIntEnable(GPIO_PORTP_BASE, GPIO_INT_PIN_0 | GPIO_INT_PIN_1);
 	IntEnable(INT_GPIOP0);
 	IntEnable(INT_GPIOP1);
 	IntMasterEnable();
 }
 
 void rpm_sone_handler(void)
-{IntMasterDisable();
-	switch (GPIOPinRead(GPIO_PORTP_BASE, STWO)) //checking other pin
+{
+	IntMasterDisable();
+	GPIOIntClear(GPIO_PORTP_BASE, SONE);
+	switch ((GPIOPinRead(GPIO_PORTP_BASE, STWO) > 0)) //checking other pin
 	{
 	case 0:					  //only pin UP
 		if (gdir == SONE_DIR) //same direction
@@ -168,7 +185,9 @@ void rpm_sone_handler(void)
 }
 void rpm_stwo_handler(void)
 {
-	switch (GPIOPinRead(GPIO_PORTP_BASE, SONE)) //checking other pin
+	IntMasterDisable();
+	GPIOIntClear(GPIO_PORTP_BASE, STWO);
+	switch ((GPIOPinRead(GPIO_PORTP_BASE, SONE) > 0)) //checking other pin
 	{
 	case 0:					  //only pin UP
 		if (gdir == STWO_DIR) //same direction
@@ -188,10 +207,12 @@ void rpm_stwo_handler(void)
 	default:
 		break;
 	}
+	IntMasterEnable();
 }
 
 void rpm_time_handler(void)
 {
+	GPIO_PORTC_AHB_DATA_R |= GPIO_PIN_5; //GPIO5 setzen
 	S2 = 1;
 	uint64_t lcounter = gcount;
 	gcount = 0;
@@ -202,6 +223,7 @@ void rpm_time_handler(void)
 		calculate(lcounter);
 	}
 	S = 0;
+	GPIO_PORTC_AHB_DATA_R &= ~GPIO_PIN_5; //GPIO5 loeschen
 }
 void calculate(uint64_t counter)
 {
@@ -217,14 +239,15 @@ void calculate(uint64_t counter)
 	gspeed = counter;
 }
 
-
 void drawIt(uint8_t mode)
 {
 	if (gspeed > 100000)
 		return;
 	O = 1;
-	while(S!=0) ;;
-
+	while (S != 0)
+		;
+	;
+	uint32_t analog = 0;
 	uint32_t lspeed = gspeed;
 	uint8_t hunderter, zehner, einer, nulleiner, nullnulleiner = 0;
 	hunderter = lspeed / 10000;
@@ -236,15 +259,19 @@ void drawIt(uint8_t mode)
 	nulleiner = lspeed / 10;
 	lspeed = gspeed % 10;
 	nullnulleiner = lspeed;
-	O=0;
-	draw_number(hunderter, MODE_NUM_1);
-	draw_number(zehner, MODE_NUM_2);
-	draw_number(einer, MODE_NUM_3);
-	draw_komma();
-	draw_number(nulleiner, MODE_NUM_4);
-	draw_number(nullnulleiner, MODE_NUM_5);
-	draw_term(mode);
-	draw_direction(gdir);
+	O = 0;
+	analog = hunderter * 100 + zehner * 10 + einer; //calculate the Speed in integer
+	if (analog > 413)								//stop from overwriting
+		analog = 414;
+	draw_number(hunderter, MODE_NUM_1);		//draw number
+	draw_number(zehner, MODE_NUM_2);		//draw number
+	draw_number(einer, MODE_NUM_3);			//draw number
+	draw_komma();							//draw komma
+	draw_number(nulleiner, MODE_NUM_4);		//draw number
+	draw_number(nullnulleiner, MODE_NUM_5); //draw number
+	draw_term(mode);						// draw the termmode
+	draw_direction(gdir);					// draw the direction
+	draw_line(32, 36, analog, 95);			// Box to cover the analog space
 }
 
 void wait(int loops)
@@ -573,12 +600,15 @@ void initialise_ssd1963(void)
 	write_command(0x29); // Set display on
 }
 
-void draw_line(unsigned int start_x, unsigned int start_y, unsigned int length, unsigned int width, uint8_t red, uint8_t green, uint8_t blue)
+void draw_line(unsigned int start_x, unsigned int start_y, unsigned int length, unsigned int width)
 {
+	uint8_t red = 107;
+	uint8_t green = 107;
+	uint8_t blue = 107;
 	int x;
-	unsigned int number_pixel = length * width;
+	unsigned int number_pixel = 414 * width;
 
-	unsigned int end_x = start_x + length - 1;
+	unsigned int end_x = start_x + 414 - 1;
 	unsigned int end_y = start_y + width - 1;
 
 	window_set(start_x, end_x, start_y, end_y);
@@ -586,9 +616,16 @@ void draw_line(unsigned int start_x, unsigned int start_y, unsigned int length, 
 
 	for (x = 0; x < number_pixel; x++) // set all pixels
 	{
-		write_data(red);   // red
-		write_data(green); // green
-		write_data(blue);  // blue
+		if (x >= length)
+		{
+			clear_pixel();
+		}
+		else
+		{
+			write_data(red);   // red
+			write_data(green); // green
+			write_data(blue);  // blue
+		}
 	}
 }
 
