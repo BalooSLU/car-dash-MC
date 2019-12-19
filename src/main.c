@@ -57,7 +57,6 @@ void window_set(unsigned int start_x, unsigned int end_x, unsigned int start_y, 
 void draw_line(unsigned int start_x, unsigned int start_y, unsigned int length, unsigned int width, uint8_t red, uint8_t green, uint8_t blue);
 void clear_display(void);
 void clear_pixel(void);
-void disp_out(void);
 //           ---RPM---
 void rpm_init(void);
 void rpm_sone_handler(void);
@@ -65,7 +64,7 @@ void rpm_stwo_handler(void);
 void rpm_time_handler(void);
 void rpm_speed(void);
 void calculate(uint64_t counter);
-void drawIt(uint32_t number, uint8_t mode);
+void drawIt(uint8_t mode);
 
 volatile uint8_t S = 0;				 // Mutex for gespeed write
 volatile uint8_t O = 0;				 // Mutex for gspeed read
@@ -95,9 +94,11 @@ int main(void)
 	//drwa_line (17, 174, 100, 80, 0x84, 0x97, 0xb0); // Box to cover the direction spac
 	SysTickEnable();	// Enable systicks
 	SysTickIntEnable(); // Enable systickinterrupts
+	IntMasterEnable();
 	while (1)
 	{
-		disp_out();
+		drawIt(MODE_TERM_KMH);
+		wait(100000);
 	}
 }
 void pin_init(void)
@@ -132,8 +133,8 @@ void rpm_init(void)
 	GPIOIntEnable(GPIO_PORTP_BASE, GPIO_INT_PIN_0 | GPIO_INT_PIN_1);
 	GPIOIntTypeSet(GPIO_PORTP_BASE, GPIO_PIN_0 | GPIO_PIN_1, GPIO_RISING_EDGE);
 
-	IntPrioritySet(INT_GPIOP0, 1);
-	IntPrioritySet(INT_GPIOP1, 1);
+	IntPrioritySet(INT_GPIOP0, 4);
+	IntPrioritySet(INT_GPIOP1, 4);
 	IntRegister(INT_GPIOP0, rpm_sone_handler);
 	IntRegister(INT_GPIOP1, rpm_stwo_handler);
 	IntEnable(INT_GPIOP0);
@@ -142,8 +143,8 @@ void rpm_init(void)
 }
 
 void rpm_sone_handler(void)
-{
-	switch (GPIO_PORTP_DATA_R & STWO) //checking other pin
+{IntMasterDisable();
+	switch (GPIOPinRead(GPIO_PORTP_BASE, STWO)) //checking other pin
 	{
 	case 0:					  //only pin UP
 		if (gdir == SONE_DIR) //same direction
@@ -163,10 +164,11 @@ void rpm_sone_handler(void)
 	default:
 		break;
 	}
+	IntMasterEnable();
 }
 void rpm_stwo_handler(void)
 {
-	switch (GPIO_PORTP_DATA_R & SONE) //checking other pin
+	switch (GPIOPinRead(GPIO_PORTP_BASE, SONE)) //checking other pin
 	{
 	case 0:					  //only pin UP
 		if (gdir == STWO_DIR) //same direction
@@ -203,7 +205,7 @@ void rpm_time_handler(void)
 }
 void calculate(uint64_t counter)
 {
-	uint64_t local = counter;
+	//uint64_t local = counter;
 	// alles ohne ueberlaefe!!!!
 	//counter   == umdrehungen pro 10ms
 	//Rad ist 1m pro Umdrehung
@@ -212,34 +214,29 @@ void calculate(uint64_t counter)
 	//counter == m pro s
 	//counter * 3,6
 	//gspeed  	== km pro h
+	gspeed = counter;
 }
 
-void disp_out(void)
-{
-	O = 1;
-	if (S == 0)
-	{
-		drawIt(gspeed, MODE_TERM_KMH);
-	}
-	O = 0;
-}
 
-void drawIt(uint32_t number, uint8_t mode)
+void drawIt(uint8_t mode)
 {
-	if (number > 100000)
+	if (gspeed > 100000)
 		return;
+	O = 1;
+	while(S!=0) ;;
 
-	uint32_t lspeed = number;
+	uint32_t lspeed = gspeed;
 	uint8_t hunderter, zehner, einer, nulleiner, nullnulleiner = 0;
 	hunderter = lspeed / 10000;
-	lspeed = number % 10000;
+	lspeed = gspeed % 10000;
 	zehner = lspeed / 1000;
-	lspeed = number % 1000;
+	lspeed = gspeed % 1000;
 	einer = lspeed / 100;
-	lspeed = number % 100;
+	lspeed = gspeed % 100;
 	nulleiner = lspeed / 10;
-	lspeed = number % 10;
+	lspeed = gspeed % 10;
 	nullnulleiner = lspeed;
+	O=0;
 	draw_number(hunderter, MODE_NUM_1);
 	draw_number(zehner, MODE_NUM_2);
 	draw_number(einer, MODE_NUM_3);
