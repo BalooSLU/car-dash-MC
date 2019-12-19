@@ -42,7 +42,7 @@
 void pin_init(void);
 void wait(int loops);
 //           ---Touch---
-void touch_write(unsigned uint8_t value);
+void touch_write(uint8_t value);
 unsigned int touch_read();
 //           ---Display---
 void startUp_display(void);
@@ -50,19 +50,22 @@ void draw_komma(void);
 void draw_term(uint8_t mode);
 void draw_direction(uint8_t direction);
 void draw_number(uint8_t number, uint8_t mode);
-void write_command(unsigned uint8_t command);
-void write_data(unsigned uint8_t data);
+void write_command(uint8_t command);
+void write_data(uint8_t data);
 void initialise_ssd1963(void);
 void window_set(unsigned int start_x, unsigned int end_x, unsigned int start_y, unsigned int end_y);
 void draw_line(unsigned int start_x, unsigned int start_y, unsigned int length, unsigned int width, uint8_t red, uint8_t green, uint8_t blue);
 void clear_display(void);
 void clear_pixel(void);
+void disp_out(void);
 //           ---RPM---
 void rpm_init(void);
 void rpm_sone_handler(void);
 void rpm_stwo_handler(void);
 void rpm_time_handler(void);
 void rpm_speed(void);
+void calculate(uint64_t counter);
+void drawIt(uint32_t number, uint8_t mode);
 
 volatile uint8_t S = 0;				 // Mutex for gespeed write
 volatile uint8_t O = 0;				 // Mutex for gspeed read
@@ -94,6 +97,7 @@ int main(void)
 	SysTickIntEnable(); // Enable systickinterrupts
 	while (1)
 	{
+		disp_out();
 	}
 }
 void pin_init(void)
@@ -130,8 +134,8 @@ void rpm_init(void)
 
 	IntPrioritySet(INT_GPIOP0, 1);
 	IntPrioritySet(INT_GPIOP1, 1);
-	IntRegister(rpm_sone_handler, INT_GPIOP0);
-	IntRegister(rpm_stwo_handler, INT_GPIOP1);
+	IntRegister(INT_GPIOP0, rpm_sone_handler);
+	IntRegister(INT_GPIOP1, rpm_stwo_handler);
 	IntEnable(INT_GPIOP0);
 	IntEnable(INT_GPIOP1);
 	IntMasterEnable();
@@ -199,7 +203,7 @@ void rpm_time_handler(void)
 }
 void calculate(uint64_t counter)
 {
-	uint64_t local
+	uint64_t local = counter;
 	// alles ohne ueberlaefe!!!!
 	//counter   == umdrehungen pro 10ms
 	//Rad ist 1m pro Umdrehung
@@ -239,7 +243,7 @@ void drawIt(uint32_t number, uint8_t mode)
 	draw_number(hunderter, MODE_NUM_1);
 	draw_number(zehner, MODE_NUM_2);
 	draw_number(einer, MODE_NUM_3);
-
+	draw_komma();
 	draw_number(nulleiner, MODE_NUM_4);
 	draw_number(nullnulleiner, MODE_NUM_5);
 	draw_term(mode);
@@ -255,10 +259,10 @@ void wait(int loops)
 
 // Touch
 
-void touch_write(unsigned uint8_t value)
+void touch_write(uint8_t value)
 {
-	unsigned uint8_t i = 0x08; // 8 bit command
-	unsigned uint8_t x, DI;
+	uint8_t i = 0x08; // 8 bit command
+	uint8_t x, DI;
 	GPIO_PORTD_AHB_DATA_R &= 0xFB; // CS=0
 
 	while (i > 0)
@@ -284,9 +288,9 @@ void touch_write(unsigned uint8_t value)
 		i--;
 	}
 }
-unsigned int touch_read()
+unsigned int touch_read(void)
 {
-	unsigned uint8_t i = 12; // 12 Bit ADC
+	uint8_t i = 12; // 12 Bit ADC
 	unsigned int x, value = 0x00;
 
 	while (i > 0)
@@ -591,7 +595,7 @@ void draw_line(unsigned int start_x, unsigned int start_y, unsigned int length, 
 	}
 }
 
-void write_command(unsigned uint8_t command)
+void write_command(uint8_t command)
 {
 	GPIO_PORTL_DATA_R = 0x1F;	// Initial state
 	GPIO_PORTL_DATA_R &= ~0x08;  // Chip select
@@ -601,7 +605,7 @@ void write_command(unsigned uint8_t command)
 	GPIO_PORTL_DATA_R |= 0x02;   // No write state
 	GPIO_PORTL_DATA_R |= 0x08;   // No chip select
 }
-void write_data(unsigned uint8_t data)
+void write_data(uint8_t data)
 {
 	GPIO_PORTL_DATA_R = 0x1F;   // Initial state
 	GPIO_PORTL_DATA_R &= ~0x08; // Chip select
