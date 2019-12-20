@@ -63,13 +63,13 @@ void rpm_sone_handler(void);
 void rpm_stwo_handler(void);
 void rpm_time_handler(void);
 void rpm_speed(void);
-void calculate(uint64_t counter);
+void calculate(uint32_t counter);
 void drawIt(uint8_t mode);
 
 volatile uint8_t S = 0;				 // Mutex for gespeed write
 volatile uint8_t O = 0;				 // Mutex for gspeed read
 volatile uint8_t S2 = 0;			 // Mutes for gcount
-volatile uint64_t gcount = 0;		 // Global counter
+volatile uint32_t gcount = 0;		 // Global counter
 volatile uint8_t gdir = DEFAULT_DIR; // Global direction
 volatile uint32_t gspeed = 0;		 // Global speed
 int main(void)
@@ -101,7 +101,7 @@ int main(void)
 		GPIO_PORTC_AHB_DATA_R = GPIO_PIN_4;   // GPIO4 setzen
 		drawIt(MODE_TERM_KMH);				  // BESTIMMEN WIE LANGE DIE FUNKTION BRAUCHT
 		GPIO_PORTC_AHB_DATA_R &= ~GPIO_PIN_4; // GPIO4 loeschen
-		wait(100000);
+		wait(10000);
 	}
 }
 void pin_init(void)
@@ -225,17 +225,10 @@ void rpm_time_handler(void)
 	S = 0;
 	GPIO_PORTC_AHB_DATA_R &= ~GPIO_PIN_5; //GPIO5 loeschen
 }
-void calculate(uint64_t counter)
+void calculate(uint32_t counter)
 {
-	//uint64_t local = counter;
-	// alles ohne ueberlaefe!!!!
-	//counter   == umdrehungen pro 10ms
-	//Rad ist 1m pro Umdrehung
-	//counter 	== m pro 10ms
-	//counter 	/ 100
-	//counter == m pro s
-	//counter * 3,6
-	//gspeed  	== km pro h
+	counter *= 100;
+	counter *= 360; //   == umdrehungen pro 10ms
 	gspeed = counter;
 }
 
