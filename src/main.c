@@ -37,6 +37,7 @@
 #define SONE_DIR 'V'
 #define STWO_DIR 'R'
 #define DEFAULT_DIR 'P'
+#define POINTS_ANALOG_X_MAX 414 // Maximal number of points in the x-achsis for the analog Area
 #define TOGGLE5 (GPIO_PORTC_AHB_DATA_R ^= GPIO_PIN_5)
 #define TOGGLE4 (GPIO_PORTC_AHB_DATA_R ^= GPIO_PIN_4)
 
@@ -82,10 +83,10 @@ int main(void)
 											SYSCTL_OSC_MAIN |
 											SYSCTL_USE_PLL |
 											SYSCTL_CFG_VCO_480),
-										   10000000); //Set clock
+										   10000000); //Set clock to 100MHz
 	SysTickPeriodSet(sysclock_read_out / 2);		  // Set period for systick to 10ms
 	SysTickIntRegister(rpm_time_handler);			  // Set handler for systick
-	//IntPrioritySet(FAULT_SYSTICK, 4);
+
 	SysTickEnable();	// Enable systicks
 	SysTickIntEnable(); // Enable systickinterrupts
 
@@ -94,10 +95,6 @@ int main(void)
 	clear_display();	  // Clear display
 	startUp_display();	// Displays startup frame
 	rpm_init();			  // Initialize interrupt pins and handler
-	//wait(100);
-	//draw_line (140, 173, 326, 81, 0x84, 0x97, 0xb0); //Box to cover the km/h space
-	//draw_line (32, 36, 414, 95, 0x84, 0x97, 0xb0); // Box to cover the analog space
-	//drwa_line (17, 174, 100, 80, 0x84, 0x97, 0xb0); // Box to cover the direction spac
 
 	IntMasterEnable();
 	while (1)
@@ -128,33 +125,26 @@ void pin_init(void)
 
 void rpm_init(void)
 {
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOP);
-	while (!SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOP))
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOP);		//for speed calculation
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);		//for debug
+	while (!SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOC)) //short wait for clock
 	{
 	}
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);
-	while (!SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOC))
-	{
-	}
-	GPIOPinTypeGPIOOutput(GPIO_PORTC_BASE, GPIO_PIN_5 | GPIO_PIN_4);
+	GPIOPinTypeGPIOOutput(GPIO_PORTC_BASE, GPIO_PIN_5 | GPIO_PIN_4); // for debug Toggle
 
-	GPIOPinTypeGPIOInput(GPIO_PORTP_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+	//GPIO Interrrupt init
+	GPIOPinTypeGPIOInput(GPIO_PORTP_BASE, GPIO_PIN_0 | GPIO_PIN_1); // for Speed calculation
 	GPIOIntTypeSet(GPIO_PORTP_BASE, GPIO_PIN_0 | GPIO_PIN_1, GPIO_RISING_EDGE);
-	// Das
-	//GPIOIntRegister(INT_GPIOP0, rpm_sone_handler);
-	//GPIOIntRegister(INT_GPIOP1, rpm_stwo_handler);
-	//oder das eins  muss gehen
-	IntRegister(INT_GPIOP0, rpm_sone_handler);
-	IntRegister(INT_GPIOP1, rpm_stwo_handler);
-	//ende
+	IntRegister(INT_GPIOP0, rpm_sone_handler); //register Interrupt handler
+	IntRegister(INT_GPIOP1, rpm_stwo_handler); //register Interrupt handler
 
-	GPIOIntClear(GPIO_PORTP_BASE, GPIO_PIN_0);
-	GPIOIntClear(GPIO_PORTP_BASE, GPIO_PIN_1);
-	IntPrioritySet(INT_GPIOP0, 0);
-	IntPrioritySet(INT_GPIOP1, 0);
-	GPIOIntEnable(GPIO_PORTP_BASE, GPIO_INT_PIN_0 | GPIO_INT_PIN_1);
-	IntEnable(INT_GPIOP0);
-	IntEnable(INT_GPIOP1);
+	GPIOIntClear(GPIO_PORTP_BASE, GPIO_PIN_0);						 //clean Interrupt flag
+	GPIOIntClear(GPIO_PORTP_BASE, GPIO_PIN_1);						 //clean interrupt flag
+	IntPrioritySet(INT_GPIOP0, 0);									 //Set high priority
+	IntPrioritySet(INT_GPIOP1, 0);									 //Set high priority
+	GPIOIntEnable(GPIO_PORTP_BASE, GPIO_INT_PIN_0 | GPIO_INT_PIN_1); //Enable GPIOs as interrupts
+	IntEnable(INT_GPIOP0);											 // Enable Interrupts
+	IntEnable(INT_GPIOP1);											 // Enable Interrupts
 }
 
 void rpm_sone_handler(void)
@@ -176,7 +166,6 @@ void rpm_sone_handler(void)
 				gcount = 1; //count up
 		}
 	}
-	//
 	IntMasterEnable();
 }
 void rpm_stwo_handler(void)
@@ -193,13 +182,11 @@ void rpm_stwo_handler(void)
 		}
 		else //direction changed
 		{
-			GPIO_PORTC_AHB_DATA_R ^= GPIO_PIN_5; //GPIO5 setzen
-			gdir = STWO_DIR;					 //set new dir
+			gdir = STWO_DIR; //set new dir
 			if (S2 == 0)
 				gcount = 1; //count up
 		}
 	}
-	//GPIO_PORTC_AHB_DATA_R &= ~GPIO_PIN_5; //GPIO5 loeschen
 	IntMasterEnable();
 }
 
@@ -219,9 +206,7 @@ void rpm_time_handler(void)
 }
 void calculate(uint32_t counter)
 {
-	counter *= 360 * 2;
-	//counter *= ; //   == umdrehungen pro 10ms
-	gspeed = counter;
+	gspeed = counter * 720; // 720 = 3,6  * 100 * 2
 }
 
 void drawIt(uint8_t mode)
@@ -231,10 +216,9 @@ void drawIt(uint8_t mode)
 	O = 1;
 	while (S != 0)
 		;
-	;
-	uint32_t analog = 0;
+	uint32_t analog = (uint32_t)gspeed / 100; //to avoid floatingpoint operations gspeed is 100 times higher
 	uint32_t lspeed = gspeed;
-	uint8_t hunderter, zehner, einer, nulleiner, nullnulleiner = 0;
+	uint8_t hunderter, zehner, einer, nulleiner, nullnulleiner = 0; //to seperate numbers
 	hunderter = lspeed / 10000;
 	lspeed = gspeed % 10000;
 	zehner = lspeed / 1000;
@@ -245,9 +229,9 @@ void drawIt(uint8_t mode)
 	lspeed = gspeed % 10;
 	nullnulleiner = lspeed;
 	O = 0;
-	analog = hunderter * 100 + zehner * 10 + einer; //calculate the Speed in integer
-	if (analog > 413)								//stop from overwriting
-		analog = 414;
+
+	if (analog >= POINTS_ANALOG_X_MAX) //stop from overwriting Area
+		analog = POINTS_ANALOG_X_MAX;
 	draw_number(hunderter, MODE_NUM_1);		//draw number
 	draw_number(zehner, MODE_NUM_2);		//draw number
 	draw_number(einer, MODE_NUM_3);			//draw number
@@ -591,17 +575,15 @@ void draw_line(unsigned int start_x, unsigned int start_y, unsigned int length, 
 	uint8_t green = 2;
 	uint8_t blue = 0;
 	int x, y;
-	//unsigned int number_pixel = 414 * width;
 
-	unsigned int end_x = start_x + 414 - 1;
-	unsigned int end_y = start_y + width - 1;
+	unsigned int end_x = start_x + POINTS_ANALOG_X_MAX;
 
 	window_set(start_x, end_x, start_y, end_y);
 	write_command(0x2C);
 
 	for (y = 0; y < width; y++)
 	{
-		for (x = 0; x < 414; x++)
+		for (x = 0; x < POINTS_ANALOG_X_MAX; x++)
 		{
 			if (x >= length)
 			{
