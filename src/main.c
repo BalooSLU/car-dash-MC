@@ -37,6 +37,9 @@
 #define SONE_DIR 'V'
 #define STWO_DIR 'R'
 #define DEFAULT_DIR 'P'
+#define START_Y_ANALOG 36
+#define START_X_ANALOG 32
+#define WIDTH_ANALOG 95
 #define POINTS_ANALOG_X_MAX 414 // Maximal number of points in the x-achsis for the analog Area
 #define TOGGLE5 (GPIO_PORTC_AHB_DATA_R ^= GPIO_PIN_5)
 #define TOGGLE4 (GPIO_PORTC_AHB_DATA_R ^= GPIO_PIN_4)
@@ -232,15 +235,15 @@ void drawIt(uint8_t mode)
 
 	if (analog >= POINTS_ANALOG_X_MAX) //stop from overwriting Area
 		analog = POINTS_ANALOG_X_MAX;
-	draw_number(hunderter, MODE_NUM_1);		//draw number
-	draw_number(zehner, MODE_NUM_2);		//draw number
-	draw_number(einer, MODE_NUM_3);			//draw number
-	draw_komma();							//draw komma
-	draw_number(nulleiner, MODE_NUM_4);		//draw number
-	draw_number(nullnulleiner, MODE_NUM_5); //draw number
-	draw_term(mode);						// draw the termmode
-	draw_direction(gdir);					// draw the direction
-	draw_line(32, 36, analog, 95);			// Box to cover the analog space
+	draw_number(hunderter, MODE_NUM_1);								 //draw number
+	draw_number(zehner, MODE_NUM_2);								 //draw number
+	draw_number(einer, MODE_NUM_3);									 //draw number
+	draw_komma();													 //draw komma
+	draw_number(nulleiner, MODE_NUM_4);								 //draw number
+	draw_number(nullnulleiner, MODE_NUM_5);							 //draw number
+	draw_term(mode);												 // draw the termmode
+	draw_direction(gdir);											 // draw the direction
+	draw_line(START_X_ANALOG, START_Y_ANALOG, analog, WIDTH_ANALOG); // Box to cover the analog space
 }
 
 void wait(int loops)
@@ -575,7 +578,7 @@ void draw_line(unsigned int start_x, unsigned int start_y, unsigned int length, 
 	uint8_t green = 2;
 	uint8_t blue = 0;
 	int x, y;
-
+	unsigned int end_y = start_y + width - 1;
 	unsigned int end_x = start_x + POINTS_ANALOG_X_MAX;
 
 	window_set(start_x, end_x, start_y, end_y);
