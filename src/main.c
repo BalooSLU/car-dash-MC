@@ -72,32 +72,30 @@ void rpm_speed(void);
 void calculate(uint32_t counter);
 void drawIt(uint8_t mode);
 
-volatile uint8_t S = 0;				 // Mutex for gspeed write
-volatile uint8_t O = 0;				 // Mutex for gspeed read
-volatile uint8_t S2 = 0;			 // Mutex for gcount
-volatile uint32_t gcount = 0;		 // Global counter
-volatile uint8_t gdir = DEFAULT_DIR; // Global direction
-volatile uint32_t gspeed = 0;		 // Global speed
+volatile uint8_t S = 0;				// Mutex for gspeed write
+volatile uint8_t O = 0;				// Mutex for gspeed read
+volatile uint8_t S2 = 0;			// Mutex for gcount
+volatile uint32_t gcount = 0;		       	// Global counter
+volatile uint8_t gdir = DEFAULT_DIR; 		// Global direction
+volatile uint32_t gspeed = 0;			// Global speed
 int main(void)
 {
 	IntMasterDisable();
 	unsigned long sysclock_read_out;
 	sysclock_read_out = SysCtlClockFreqSet((SYSCTL_XTAL_25MHZ |
-											SYSCTL_OSC_MAIN |
-											SYSCTL_USE_PLL |
-											SYSCTL_CFG_VCO_480),
-										   10000000); //Set clock to 100MHz
-	SysTickPeriodSet(sysclock_read_out / 2);		  // Set period for systick to 10ms
-	SysTickIntRegister(rpm_time_handler);			  // Set handler for systick
+				SYSCTL_OSC_MAIN | SYSCTL_USE_PLL | SYSCTL_CFG_VCO_480),
+				10000000); //Set clock to 100MHz
+	SysTickPeriodSet(sysclock_read_out / 2);	// Set period for systick to 10ms
+	SysTickIntRegister(rpm_time_handler);		// Set handler for systick
 
 	SysTickEnable();	// Enable systicks
-	SysTickIntEnable(); // Enable systickinterrupts
+	SysTickIntEnable(); 	// Enable systickinterrupts
 
-	pin_init();			  // Initialize pins for display
-	initialise_ssd1963(); // Initialize display
-	clear_display();	  // Clear display
+	pin_init();		// Initialize pins for display
+	initialise_ssd1963(); 	// Initialize display
+	clear_display();	// Clear display
 	startUp_display();	// Displays startup frame
-	rpm_init();			  // Initialize interrupt pins and handler
+	rpm_init();		// Initialize interrupt pins and handler
 
 	IntMasterEnable();
 	while (1)
@@ -141,13 +139,13 @@ void rpm_init(void)
 	IntRegister(INT_GPIOP0, rpm_sone_handler); //register Interrupt handler
 	IntRegister(INT_GPIOP1, rpm_stwo_handler); //register Interrupt handler
 
-	GPIOIntClear(GPIO_PORTP_BASE, GPIO_PIN_0);						 //clean Interrupt flag
-	GPIOIntClear(GPIO_PORTP_BASE, GPIO_PIN_1);						 //clean interrupt flag
-	IntPrioritySet(INT_GPIOP0, 0);									 //Set high priority
-	IntPrioritySet(INT_GPIOP1, 0);									 //Set high priority
-	GPIOIntEnable(GPIO_PORTP_BASE, GPIO_INT_PIN_0 | GPIO_INT_PIN_1); //Enable GPIOs as interrupts
-	IntEnable(INT_GPIOP0);											 // Enable Interrupts
-	IntEnable(INT_GPIOP1);											 // Enable Interrupts
+	GPIOIntClear(GPIO_PORTP_BASE, GPIO_PIN_0);			//clean Interrupt flag
+	GPIOIntClear(GPIO_PORTP_BASE, GPIO_PIN_1);			//clean interrupt flag
+	IntPrioritySet(INT_GPIOP0, 0);					//Set high priority
+	IntPrioritySet(INT_GPIOP1, 0);					//Set high priority
+	GPIOIntEnable(GPIO_PORTP_BASE, GPIO_INT_PIN_0 | GPIO_INT_PIN_1);//Enable GPIOs as interrupts
+	IntEnable(INT_GPIOP0);						// Enable Interrupts
+	IntEnable(INT_GPIOP1);						// Enable Interrupts
 }
 
 void rpm_sone_handler(void)
@@ -219,7 +217,8 @@ void drawIt(uint8_t mode)
 	O = 1;
 	while (S != 0)
 		;
-	uint32_t analog = (uint32_t)gspeed / 100; //to avoid floatingpoint operations gspeed is 100 times higher
+	//to avoid floatingpoint operations gspeed is 100 times higher
+	uint32_t analog = (uint32_t)gspeed / 100; 
 	uint32_t lspeed = gspeed;
 	uint8_t hunderter, zehner, einer, nulleiner, nullnulleiner = 0; //to seperate numbers
 	hunderter = lspeed / 10000;
@@ -234,16 +233,16 @@ void drawIt(uint8_t mode)
 	O = 0;
 
 	if (analog >= POINTS_ANALOG_X_MAX) //stop from overwriting Area
-		analog = POINTS_ANALOG_X_MAX;
-	draw_number(hunderter, MODE_NUM_1);								 //draw number
-	draw_number(zehner, MODE_NUM_2);								 //draw number
-	draw_number(einer, MODE_NUM_3);									 //draw number
-	draw_komma();													 //draw komma
-	draw_number(nulleiner, MODE_NUM_4);								 //draw number
-	draw_number(nullnulleiner, MODE_NUM_5);							 //draw number
-	draw_term(mode);												 // draw the termmode
-	draw_direction(gdir);											 // draw the direction
-	draw_line(START_X_ANALOG, START_Y_ANALOG, analog, WIDTH_ANALOG); // Box to cover the analog space
+	analog = POINTS_ANALOG_X_MAX;
+	draw_number(hunderter, MODE_NUM_1);				//draw number
+	draw_number(zehner, MODE_NUM_2);				//draw number
+	draw_number(einer, MODE_NUM_3);					//draw number
+	draw_komma();							//draw komma
+	draw_number(nulleiner, MODE_NUM_4);				//draw number
+	draw_number(nullnulleiner, MODE_NUM_5);				//draw number
+	draw_term(mode);						// draw the termmode
+	draw_direction(gdir);						// draw the direction
+	draw_line(START_X_ANALOG, START_Y_ANALOG, analog, WIDTH_ANALOG);// Box to cover the analog space
 }
 
 void wait(int loops)
@@ -312,21 +311,21 @@ void clear_display(void)
 {
 	int x;
 
-	window_set(0, DISP_WIDTH, 0, DISP_HIGHT); // set position
-	write_command(0x2C);					  // write pixel command
+	window_set(0, DISP_WIDTH, 0, DISP_HIGHT); 	// set position
+	write_command(0x2C);				// write pixel command
 
 	for (x = 0; x < DISP_FULL; x++) // set all pixels
 	{
 		write_data(0x84); // red  	132
 		write_data(0x97); // green	151
-		write_data(0xb0); // blue		176
+		write_data(0xb0); // blue	176
 	}
 }
 void startUp_display(void)
 {
 	int x, y = 0;
-	window_set(0, DISP_WIDTH, 0, DISP_HIGHT); // set position
-	write_command(0x2C);					  // write pixel command
+	window_set(0, DISP_WIDTH, 0, DISP_HIGHT); 	// set position
+	write_command(0x2C);				// write pixel command
 
 	for (y = 0; y < DISP_HIGHT; y++)
 	{
@@ -508,34 +507,34 @@ void clear_pixel(void)
 void initialise_ssd1963(void)
 {
 
-	GPIO_PORTL_DATA_R &= ~0x10; // Hardware reset
-	wait(1600);					// Wait more than 100us -> 1ms
+	GPIO_PORTL_DATA_R &= ~0x10; 	// Hardware reset
+	wait(1600);			// Wait more than 100us -> 1ms
 
-	write_command(0x01); // Software reset
-	wait(16000);		 // Wait more than 5ms -> 10ms
+	write_command(0x01); 		// Software reset
+	wait(16000);		 	// Wait more than 5ms -> 10ms
 
-	write_command(0xE2); // Set PLL Freq=100MHz
+	write_command(0xE2); 		// Set PLL Freq=100MHz
 	write_data(0x1D);
 	write_data(0x02);
 	write_data(0x04);
 
-	write_command(0xE0); // Start PLL
+	write_command(0xE0); 		// Start PLL
 	write_data(0x01);
-	wait(1600); // Wait more than 100us -> 1ms
+	wait(1600); 			// Wait more than 100us -> 1ms
 
-	write_command(0xE0); //Lock PLL
+	write_command(0xE0); 		//Lock PLL
 	write_data(0x03);
-	wait(1600); // Wait more than 100us -> 1ms
+	wait(1600); 			// Wait more than 100us -> 1ms
 
-	write_command(0x01); //Software reset
-	wait(16000);		 // Wait more than 5ms -> 10ms
+	write_command(0x01); 		//Software reset
+	wait(16000);		 	// Wait more than 5ms -> 10ms
 
-	write_command(0xE6); // Set LCD Pixel Clock 9MHz;
+	write_command(0xE6); 		// Set LCD Pixel Clock 9MHz;
 	write_data(0x01);
 	write_data(0x70);
 	write_data(0xA3);
 
-	write_command(0xB0); // Set LCD Panel mode
+	write_command(0xB0); 	// Set LCD Panel mode
 	write_data(0x20);	// TFT panel 24bit...
 	write_data(0x00);	// TFT mode
 	write_data(0x01);	// Horizontal size 480-1
@@ -544,23 +543,23 @@ void initialise_ssd1963(void)
 	write_data(0x0F);	// Vertical size 272-1
 	write_data(0x00);	// even/odd line RGB
 
-	write_command(0xB4); // set Horizontal period
+	write_command(0xB4); 	// set Horizontal period
 	write_data(0x02);	// set HT total pixel=531
 	write_data(0x13);
-	write_data(0x00); // Set Horizontal sync pule start pos=43
+	write_data(0x00); 	// Set Horizontal sync pule start pos=43
 	write_data(0x2B);
-	write_data(0x0A); // set horiz.sync pulse with =10
-	write_data(0x00); // set horiz.sync pulse start pos=8
+	write_data(0x0A); 	// set horiz.sync pulse with =10
+	write_data(0x00); 	// set horiz.sync pulse start pos=8
 	write_data(0x08);
 	write_data(0x00);
 
-	write_command(0xB6); // set Vertical period
+	write_command(0xB6); 	// set Vertical period
 	write_data(0x01);	// set VT lines = 288
 	write_data(0x20);
-	write_data(0x00); // Set VPS = 12
+	write_data(0x00); 	// Set VPS = 12
 	write_data(0x0C);
-	write_data(0x0A); // set vert.sync pulse with = 10
-	write_data(0x00); // set vert.sync pulse start = 4
+	write_data(0x0A); 	// set vert.sync pulse with = 10
+	write_data(0x00); 	// set vert.sync pulse start = 4
 	write_data(0x04);
 
 	write_command(0x36); // Flip Dysplay - necessary to match with Touch Display
@@ -634,5 +633,5 @@ void window_set(unsigned int start_x, unsigned int end_x, unsigned int start_y, 
 	write_data((start_y) >> 8); // SET start column adress (HB)
 	write_data(start_y);		// SET start column adress (LB)
 	write_data((end_y) >> 8);   // SET end column adress
-	write_data(end_y);			// SET end column adress
+	write_data(end_y);		// SET end column adress
 }
