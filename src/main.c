@@ -9,7 +9,7 @@
 *
 * This project is a laboratory test from the university,
 * where we recognize the speed of a motor. 
-* The speed is then displayed on a graphic LCD display.
+* The speed is then displayed on a graphic LCD.
  */
 //test
 
