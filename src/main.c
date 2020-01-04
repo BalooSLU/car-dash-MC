@@ -104,9 +104,8 @@ int main(void)
 	IntMasterEnable();
 	while (1)
 	{
-		touch_write(0xD0); // Touch Command XPos read
-		for (x = 0; x < 10; x++)
-			;				 // Busy wait
+		touch_write(0xD0);   // Touch Command XPos read
+		wait(10);			 // Busy wait
 		xpos = touch_read(); // xpos value read (0...4095)
 		switch (state)
 		{
@@ -273,7 +272,8 @@ void drawIt(uint8_t mode)
 		lnumber = gspeed;
 		break;
 	default:
-		return break;
+		return;
+		break;
 	}
 
 	analog = (uint32_t)gspeed / 100;
