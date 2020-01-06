@@ -40,9 +40,9 @@
 #define START_Y_ANALOG 36
 #define START_X_ANALOG 32
 #define WIDTH_ANALOG 95
-#define POINTS_ANALOG_X_MAX 414 // Maximal number of points in the x-achsis for the analog Area
-#define TOGGLE5 (GPIO_PORTC_AHB_DATA_R ^= GPIO_PIN_5)
-#define TOGGLE4 (GPIO_PORTC_AHB_DATA_R ^= GPIO_PIN_4)
+#define POINTS_ANALOG_X_MAX 413						  // Maximal number of points in the x-achsis for the analog Area
+#define TOGGLE5 (GPIO_PORTC_AHB_DATA_R ^= GPIO_PIN_5) // for debugging
+#define TOGGLE4 (GPIO_PORTC_AHB_DATA_R ^= GPIO_PIN_4) // for debugging
 
 //           ---System---
 void pin_init(void);
@@ -85,8 +85,8 @@ int main(void)
 	unsigned long sysclock_read_out;
 	sysclock_read_out = SysCtlClockFreqSet((SYSCTL_XTAL_25MHZ |
 											SYSCTL_OSC_MAIN | SYSCTL_USE_PLL | SYSCTL_CFG_VCO_480),
-										   10000000); //Set clock to 100MHz
-	SysTickPeriodSet(sysclock_read_out / 2);		  // Set period for systick to 10ms
+										   10000000); // Set clock to 100MHz
+	SysTickPeriodSet(sysclock_read_out / 2);		  // Set period for systick to 500ms
 	SysTickIntRegister(rpm_time_handler);			  // Set handler for systick
 
 	SysTickEnable();	// Enable systicks
@@ -157,9 +157,9 @@ void pin_init(void)
 
 void rpm_init(void)
 {
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOP);		//for speed calculation
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);		//for debug
-	while (!SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOC)) //short wait for clock
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOP);		// for speed calculation
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);		// for debug
+	while (!SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOC)) // short wait for clock
 	{
 	}
 	GPIOPinTypeGPIOOutput(GPIO_PORTC_BASE, GPIO_PIN_5 | GPIO_PIN_4); // for debug Toggle
@@ -167,14 +167,14 @@ void rpm_init(void)
 	//GPIO Interrrupt init
 	GPIOPinTypeGPIOInput(GPIO_PORTP_BASE, GPIO_PIN_0 | GPIO_PIN_1); // for Speed calculation
 	GPIOIntTypeSet(GPIO_PORTP_BASE, GPIO_PIN_0 | GPIO_PIN_1, GPIO_RISING_EDGE);
-	IntRegister(INT_GPIOP0, rpm_sone_handler); //register Interrupt handler
-	IntRegister(INT_GPIOP1, rpm_stwo_handler); //register Interrupt handler
+	IntRegister(INT_GPIOP0, rpm_sone_handler); // register Interrupt handler
+	IntRegister(INT_GPIOP1, rpm_stwo_handler); // register Interrupt handler
 
-	GPIOIntClear(GPIO_PORTP_BASE, GPIO_PIN_0);						 //clean Interrupt flag
-	GPIOIntClear(GPIO_PORTP_BASE, GPIO_PIN_1);						 //clean interrupt flag
-	IntPrioritySet(INT_GPIOP0, 0);									 //Set high priority
-	IntPrioritySet(INT_GPIOP1, 0);									 //Set high priority
-	GPIOIntEnable(GPIO_PORTP_BASE, GPIO_INT_PIN_0 | GPIO_INT_PIN_1); //Enable GPIOs as interrupts
+	GPIOIntClear(GPIO_PORTP_BASE, GPIO_PIN_0);						 // clean Interrupt flag
+	GPIOIntClear(GPIO_PORTP_BASE, GPIO_PIN_1);						 // clean interrupt flag
+	IntPrioritySet(INT_GPIOP0, 0);									 // Set high priority
+	IntPrioritySet(INT_GPIOP1, 0);									 // Set high priority
+	GPIOIntEnable(GPIO_PORTP_BASE, GPIO_INT_PIN_0 | GPIO_INT_PIN_1); // Enable GPIOs as interrupts
 	IntEnable(INT_GPIOP0);											 // Enable Interrupts
 	IntEnable(INT_GPIOP1);											 // Enable Interrupts
 }
@@ -183,21 +183,21 @@ void rpm_sone_handler(void)
 {
 	IntMasterDisable();
 	TOGGLE5;
-	GPIOIntClear(GPIO_PORTP_BASE, SONE);	 //clear interrupt-flag
-	if (!GPIOPinRead(GPIO_PORTP_BASE, STWO)) //checking other pin
+	GPIOIntClear(GPIO_PORTP_BASE, SONE);	 // clear interrupt-flag
+	if (!GPIOPinRead(GPIO_PORTP_BASE, STWO)) // checking other pin
 	{
-		if (gdir == SONE_DIR) //same direction
+		if (gdir == SONE_DIR) // same direction
 		{
-			if (S2 == 0)	 //gcount is enabled
-				gcount += 1; //count up
+			if (S2 == 0)	 // gcount is enabled
+				gcount += 1; // count up
 		}
-		else //direction changed
+		else // direction changed
 		{
-			gdir = SONE_DIR; //set new dir
+			gdir = SONE_DIR; // set new dir
 			if (S2 == 0)
 			{
 				gmeter += gcount;
-				gcount = 1; //count up
+				gcount = 1; // count up
 			}
 		}
 	}
@@ -205,23 +205,22 @@ void rpm_sone_handler(void)
 }
 void rpm_stwo_handler(void)
 {
-	TOGGLE4;
 	IntMasterDisable();
 	GPIOIntClear(GPIO_PORTP_BASE, STWO);
-	if (!GPIOPinRead(GPIO_PORTP_BASE, SONE)) //checking other pin
+	if (!GPIOPinRead(GPIO_PORTP_BASE, SONE)) // checking other pin
 	{
-		if (gdir == STWO_DIR) //same direction
+		if (gdir == STWO_DIR) // same direction
 		{
-			if (S2 == 0)	 //gcount is enabled
-				gcount += 1; //count up
+			if (S2 == 0)	 // gcount is enabled
+				gcount += 1; // count up
 		}
-		else //direction changed
+		else // direction changed
 		{
-			gdir = STWO_DIR; //set new dir
+			gdir = STWO_DIR; // set new dir
 			if (S2 == 0)
 			{
 				gmeter += gcount;
-				gcount = 1; //count up
+				gcount = 1; // count up
 			}
 		}
 	}
@@ -253,17 +252,18 @@ void drawIt(uint8_t mode)
 	O = 1;
 	while (S != 0)
 		;
-	//to avoid floatingpoint operations gspeed is 100 times higher
+	// to avoid floatingpoint operations gspeed is 100 times higher
 	uint32_t analog, lhelpnumber, lnumber;
-	uint8_t hunderter, zehner, einer, nulleiner, nullnulleiner = 0; //to seperate numbers
+	uint8_t hunderter, zehner, einer, nulleiner, nullnulleiner = 0; // to seperate numbers
+	uint64_t lmeter = gmeter;
 	switch (mode)
 	{
 	case MODE_TERM_KM:
-		gmeter /= 10;
-		if (gmeter > 100000)
+		lmeter /= 10;
+		if (lmeter > 100000)
 			return;
-		lhelpnumber = gmeter;
-		lnumber = gmeter;
+		lhelpnumber = lmeter;
+		lnumber = lmeter;
 		break;
 	case MODE_TERM_KMH:
 		if (gspeed > 100000)
@@ -272,7 +272,6 @@ void drawIt(uint8_t mode)
 		lnumber = gspeed;
 		break;
 	default:
-		return;
 		break;
 	}
 
@@ -288,14 +287,14 @@ void drawIt(uint8_t mode)
 	lhelpnumber = lnumber % 10;
 	nullnulleiner = lhelpnumber;
 
-	if (analog >= POINTS_ANALOG_X_MAX) //stop from overwriting Area
+	if (analog >= POINTS_ANALOG_X_MAX) // stop from overwriting Area
 		analog = POINTS_ANALOG_X_MAX;
-	draw_number(hunderter, MODE_NUM_1);								 //draw number
-	draw_number(zehner, MODE_NUM_2);								 //draw number
-	draw_number(einer, MODE_NUM_3);									 //draw number
-	draw_komma();													 //draw komma
-	draw_number(nulleiner, MODE_NUM_4);								 //draw number
-	draw_number(nullnulleiner, MODE_NUM_5);							 //draw number
+	draw_number(hunderter, MODE_NUM_1);								 // draw number
+	draw_number(zehner, MODE_NUM_2);								 // draw number
+	draw_number(einer, MODE_NUM_3);									 // draw number
+	draw_komma();													 // draw komma
+	draw_number(nulleiner, MODE_NUM_4);								 // draw number
+	draw_number(nullnulleiner, MODE_NUM_5);							 // draw number
 	draw_term(mode);												 // draw the termmode
 	draw_direction(gdir);											 // draw the direction
 	draw_line(START_X_ANALOG, START_Y_ANALOG, analog, WIDTH_ANALOG); // Box to cover the analog space
@@ -582,7 +581,7 @@ void initialise_ssd1963(void)
 	write_data(0x03);
 	wait(1600); // Wait more than 100us -> 1ms
 
-	write_command(0x01); //Software reset
+	write_command(0x01); // Software reset
 	wait(16000);		 // Wait more than 5ms -> 10ms
 
 	write_command(0xE6); // Set LCD Pixel Clock 9MHz;
@@ -629,12 +628,18 @@ void initialise_ssd1963(void)
 
 void draw_line(unsigned int start_x, unsigned int start_y, unsigned int length, unsigned int width)
 {
-	uint8_t red = 230;
-	uint8_t green = 2;
+	uint8_t red = 2;
+	uint8_t green = 230;
 	uint8_t blue = 0;
+	if(gdir != SONE_DIR)
+	{
+	 	red = 230;
+		green = 230;
+		blue = 0;
+	}
 	int x, y;
 	unsigned int end_y = start_y + width - 1;
-	unsigned int end_x = start_x + POINTS_ANALOG_X_MAX;
+	unsigned int end_x = start_x + POINTS_ANALOG_X_MAX - 1;
 
 	window_set(start_x, end_x, start_y, end_y);
 	write_command(0x2C);
